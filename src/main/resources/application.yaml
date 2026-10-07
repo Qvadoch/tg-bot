@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: tg_bot
+
+bot:
+  token: ${BOT_TOKEN}
+
+google:
+  client-file: ${GOOGLE_CLIENT_FILE}
