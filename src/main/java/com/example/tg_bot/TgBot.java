@@ -19,7 +19,7 @@ public class TgBot implements SpringLongPollingBot, LongPollingUpdateConsumer {
     private final String botToken;
     private final TelegramClient telegramClient;
 
-    public TgBot(@Value("${BOT_TOKEN}") String botToken) {
+    public TgBot(@Value("${bot.token}") String botToken) {
         this.botToken = botToken;
         this.telegramClient = new OkHttpTelegramClient(botToken);
     }
@@ -29,20 +29,32 @@ public class TgBot implements SpringLongPollingBot, LongPollingUpdateConsumer {
     public void consume(List<Update> updates) {
         for (Update update : updates) {
             if (update.hasMessage() && update.getMessage().hasText()) {
-                String message = update.getMessage().getText();
-                System.out.println(message);
-
                 Long chatId = update.getMessage().getChatId();
 
-                SendMessage sendMessage = SendMessage.builder().chatId(chatId).text(message).build();
-
-                try {
-                    telegramClient.execute(sendMessage);
-                } catch (TelegramApiException e) {
-                    throw new RuntimeException(e);
+                switch (update.getMessage().getText()) {
+                    case "/start":
+                        sendText(chatId, "Привет! Я показываю домашние задания из Google Classroom.\nНапиши /help, чтобы увидеть список команд.");
+                        break;
+                    case "/help":
+                        sendText(chatId, "Команды:\n/start - начать\n/help - список команд\n/homework - показать домашние задания");
+                        break;
+                    case "/homework":
+                        sendText(chatId, "Эта функция пока в разработке.");
+                        break;
+                    default:
+                        sendText(chatId, "Такой команды нет. Напиши /help.");
+                        break;
                 }
             }
+        }
+    }
 
+    private void sendText(Long chatId, String text) {
+        SendMessage sendMessage = SendMessage.builder().chatId(chatId).text(text).build();
+        try {
+            telegramClient.execute(sendMessage);
+        } catch (TelegramApiException e) {
+            throw new RuntimeException(e);
         }
     }
 
