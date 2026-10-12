@@ -54,6 +54,12 @@
             <scope>compile</scope>
         </dependency>
 
+        <dependency>
+            <groupId>org.telegram</groupId>
+            <artifactId>telegrambots-client</artifactId>
+            <version>10.3.0</version>
+        </dependency>
+
         <!-- Google Classroom API -->
         <dependency>
             <groupId>com.google.apis</groupId>
