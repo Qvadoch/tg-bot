@@ -1,5 +1,7 @@
 package com.example.tg_bot;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.client.okhttp.OkHttpTelegramClient;
@@ -10,18 +12,23 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 
+import java.io.IOException;
 import java.util.List;
 
 
 @Component
 public class TgBot implements SpringLongPollingBot, LongPollingUpdateConsumer {
 
+    private static final Logger log = LoggerFactory.getLogger(TgBot.class);
+
     private final String botToken;
     private final TelegramClient telegramClient;
+    private final ClassroomService classroomService;
 
-    public TgBot(@Value("${bot.token}") String botToken) {
+    public TgBot(@Value("${bot.token}") String botToken, ClassroomService classroomService) {
         this.botToken = botToken;
         this.telegramClient = new OkHttpTelegramClient(botToken);
+        this.classroomService = classroomService;
     }
 
 
@@ -30,16 +37,20 @@ public class TgBot implements SpringLongPollingBot, LongPollingUpdateConsumer {
         for (Update update : updates) {
             if (update.hasMessage() && update.getMessage().hasText()) {
                 Long chatId = update.getMessage().getChatId();
+                String command = update.getMessage().getText().trim().split("[ @]")[0];
 
-                switch (update.getMessage().getText()) {
+                switch (command) {
                     case "/start":
                         sendText(chatId, "Привет! Я показываю домашние задания из Google Classroom.\nНапиши /help, чтобы увидеть список команд.");
                         break;
                     case "/help":
-                        sendText(chatId, "Команды:\n/start - начать\n/help - список команд\n/homework - показать домашние задания");
+                        sendText(chatId, "Команды:\n/start - начать\n/help - список команд\n/homework - показать домашние задания\n/courses - показать курсы");
                         break;
                     case "/homework":
                         sendText(chatId, "Эта функция пока в разработке.");
+                        break;
+                    case "/courses":
+                        sendCourses(chatId);
                         break;
                     default:
                         sendText(chatId, "Такой команды нет. Напиши /help.");
@@ -49,12 +60,26 @@ public class TgBot implements SpringLongPollingBot, LongPollingUpdateConsumer {
         }
     }
 
+    private void sendCourses(Long chatId) {
+        try {
+            List<String> courses = classroomService.getCourses();
+            if (courses.isEmpty()) {
+                sendText(chatId, "На данный момент курсов нет.");
+                return;
+            }
+            sendText(chatId, "Твои курсы:\n" + String.join("\n", courses));
+        } catch (IOException e) {
+            log.error("Не удалось получить курсы из Classroom", e);
+            sendText(chatId, "Не удалось получить курсы. Попробуй позже.");
+        }
+    }
+
     private void sendText(Long chatId, String text) {
         SendMessage sendMessage = SendMessage.builder().chatId(chatId).text(text).build();
         try {
             telegramClient.execute(sendMessage);
         } catch (TelegramApiException e) {
-            throw new RuntimeException(e);
+            log.error("Не удалось отправить сообщение в чат {}", chatId, e);
         }
     }
 

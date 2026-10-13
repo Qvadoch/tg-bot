@@ -7,3 +7,5 @@ bot:
 
 google:
   client-file: ${GOOGLE_CLIENT_FILE}
+  tokens:
+    dir: ${GOOGLE_TOKENS_DIR}
