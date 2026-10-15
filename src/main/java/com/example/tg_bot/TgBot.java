@@ -1,5 +1,6 @@
 package com.example.tg_bot;
 
+import com.google.api.services.classroom.model.CourseWork;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,6 +15,7 @@ import org.telegram.telegrambots.meta.generics.TelegramClient;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 @Component
@@ -47,7 +49,7 @@ public class TgBot implements SpringLongPollingBot, LongPollingUpdateConsumer {
                         sendText(chatId, "Команды:\n/start - начать\n/help - список команд\n/homework - показать домашние задания\n/courses - показать курсы");
                         break;
                     case "/homework":
-                        sendText(chatId, "Эта функция пока в разработке.");
+                        sendHomework(chatId);
                         break;
                     case "/courses":
                         sendCourses(chatId);
@@ -71,6 +73,25 @@ public class TgBot implements SpringLongPollingBot, LongPollingUpdateConsumer {
         } catch (IOException e) {
             log.error("Не удалось получить курсы из Classroom", e);
             sendText(chatId, "Не удалось получить курсы. Попробуй позже.");
+        }
+    }
+
+    private void sendHomework(Long chatId) {
+        try {
+            List<CourseWork> homework = classroomService.getHomework();
+            if (homework.isEmpty()) {
+                sendText(chatId, "Заданий пока нет.");
+                return;
+            }
+
+            String text = homework.stream()
+                    .limit(10)
+                    .map(work -> work.getTitle() + "\n" + work.getAlternateLink())
+                    .collect(Collectors.joining("\n\n", "Задания (" + homework.size() + "):\n\n", ""));
+            sendText(chatId, text);
+        } catch (IOException e) {
+            log.error("Не удалось получить задания из Classroom", e);
+            sendText(chatId, "Не удалось получить задания. Попробуй позже.");
         }
     }
 

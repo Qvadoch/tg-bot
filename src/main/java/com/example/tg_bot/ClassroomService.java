@@ -11,21 +11,23 @@ import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.util.store.FileDataStoreFactory;
 import com.google.api.services.classroom.Classroom;
 import com.google.api.services.classroom.model.Course;
+import com.google.api.services.classroom.model.CourseWork;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-@Component
+@Service
 public class ClassroomService {
     private final String googleTokensDir;
     private final String googleClientFile;
-    private final Set<String> scopes = Set.of("https://www.googleapis.com/auth/classroom.courses.readonly", "https://www.googleapis.com/auth/classroom.course-work.readonly");
+    private final Set<String> scopes = Set.of("https://www.googleapis.com/auth/classroom.courses.readonly", "https://www.googleapis.com/auth/classroom.course-work.readonly", "https://www.googleapis.com/auth/classroom.coursework.me.readonly");
     private NetHttpTransport httpTransport;
     private GsonFactory jsonFactory;
     private Classroom classroom;
@@ -66,10 +68,37 @@ public class ClassroomService {
     }
 
     public List<String> getCourses() throws IOException {
-        List<Course> courses = classroom.courses().list().setCourseStates(List.of("ACTIVE")).execute().getCourses();
+        List<Course> courses = classroom.courses().list()
+                .setCourseStates(List.of("ACTIVE"))
+                .execute()
+                .getCourses();
         if (courses == null) {
             return List.of();
         }
-        return courses.stream().map(Course::getName).toList();
+        return courses.stream()
+                .map(Course::getName)
+                .toList();
+    }
+
+    public List<CourseWork> getHomework() throws IOException {
+        List<Course> courses = classroom.courses().list()
+                .setCourseStates(List.of("ACTIVE"))
+                .execute()
+                .getCourses();
+        if (courses == null) {
+            return List.of();
+        }
+
+        List<CourseWork> result = new ArrayList<>();
+        for (Course course : courses) {
+            List<CourseWork> works = classroom.courses().courseWork()
+                    .list(course.getId())
+                    .execute()
+                    .getCourseWork();
+            if (works != null) {
+                result.addAll(works);
+            }
+        }
+        return result;
     }
 }
