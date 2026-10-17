@@ -1,6 +1,5 @@
 package com.example.tg_bot;
 
-import com.google.api.services.classroom.model.CourseWork;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,6 +13,8 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -22,6 +23,7 @@ import java.util.stream.Collectors;
 public class TgBot implements SpringLongPollingBot, LongPollingUpdateConsumer {
 
     private static final Logger log = LoggerFactory.getLogger(TgBot.class);
+    private static final DateTimeFormatter DUE_FORMAT = DateTimeFormatter.ofPattern("dd.MM HH:mm");
 
     private final String botToken;
     private final TelegramClient telegramClient;
@@ -78,7 +80,7 @@ public class TgBot implements SpringLongPollingBot, LongPollingUpdateConsumer {
 
     private void sendHomework(Long chatId) {
         try {
-            List<CourseWork> homework = classroomService.getHomework();
+            List<HomeworkItem> homework = classroomService.getHomework();
             if (homework.isEmpty()) {
                 sendText(chatId, "Заданий пока нет.");
                 return;
@@ -86,13 +88,23 @@ public class TgBot implements SpringLongPollingBot, LongPollingUpdateConsumer {
 
             String text = homework.stream()
                     .limit(10)
-                    .map(work -> work.getTitle() + "\n" + work.getAlternateLink())
+                    .map(work -> work.courseName() + "\n"
+                            + work.title() + "\n"
+                            + formatDue(work.due()) + "\n"
+                            + work.link())
                     .collect(Collectors.joining("\n\n", "Задания (" + homework.size() + "):\n\n", ""));
             sendText(chatId, text);
         } catch (IOException e) {
             log.error("Не удалось получить задания из Classroom", e);
             sendText(chatId, "Не удалось получить задания. Попробуй позже.");
         }
+    }
+
+    private static String formatDue(LocalDateTime due) {
+        if (due == null) {
+            return "Без срока";
+        }
+        return "Срок: " + due.format(DUE_FORMAT);
     }
 
     private void sendText(Long chatId, String text) {
