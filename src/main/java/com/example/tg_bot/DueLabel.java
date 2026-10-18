@@ -7,49 +7,59 @@ import java.time.format.TextStyle;
 import java.time.temporal.ChronoUnit;
 import java.util.Locale;
 
-public class DueLabel {
+public final class DueLabel {
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
+    private static final Locale RU = Locale.forLanguageTag("ru");
 
-    public static String format(LocalDateTime dueDate, LocalDateTime dateNow) {
-        if (dueDate == null) {
+    private DueLabel() {
+    }
+
+    /**
+     * Подпись срока для сообщения. {@code due} и {@code now} должны быть в одной зоне, {@code now} не null.
+     */
+    public static String format(LocalDateTime due, LocalDateTime now) {
+        if (due == null) {
             return "Без срока";
         }
+        if (due.isAfter(now)) {
+            return futureLabel(due, now);
+        }
+        return overdueLabel(due, now);
+    }
 
-        if (dueDate.isAfter(dateNow)) {
-            Duration duration = Duration.between(dateNow, dueDate);
-            long days = ChronoUnit.DAYS.between(dateNow.toLocalDate(), dueDate.toLocalDate());
-            long hours = duration.toHours();
-            long minutes = duration.toMinutesPart();
+    private static String futureLabel(LocalDateTime due, LocalDateTime now) {
+        long days = ChronoUnit.DAYS.between(now.toLocalDate(), due.toLocalDate());
 
-            if(days == 0) {
-                if (hours == 0 && minutes == 0) {
-                    return "Срок: сегодня, меньше минуты";
-                } else if (hours == 0) {
-                    return "Срок: сегодня через " + minutes + " мин";
-                } else {
-                    return "Срок: сегодня через " + hours + " ч" + (minutes == 0 ? "" : " " + minutes + " мин");
-                }
-            } else if(days == 1){
-                return "Срок: завтра в " + dueDate.format(TIME_FORMAT);
-            } else {
-                String month = dueDate.getMonth().getDisplayName(TextStyle.FULL, Locale.forLanguageTag("ru"));
-                return "Срок: " + dueDate.getDayOfMonth() + " " + month + " " + dueDate.format(TIME_FORMAT);
+        if (days == 0) {
+            Duration left = Duration.between(now, due);
+            if (left.toMinutes() < 1) {
+                return "Срок: сегодня, меньше минуты";
             }
+            return "Срок: сегодня через " + hoursAndMinutes(left.toHours(), left.toMinutesPart());
         }
+        if (days == 1) {
+            return "Срок: завтра в " + due.format(TIME_FORMAT);
+        }
+        String month = due.getMonth().getDisplayName(TextStyle.FULL, RU);
+        return "Срок: " + due.getDayOfMonth() + " " + month + " " + due.format(TIME_FORMAT);
+    }
 
-        Duration duration = Duration.between(dueDate, dateNow);
-        if (duration.getSeconds() >= 60 && duration.getSeconds() < 3600) {
-            long minute = duration.getSeconds() / 60;
-            return "Просрочено на " + minute + " мин";
-        } else if (duration.getSeconds() < 60) {
+    private static String overdueLabel(LocalDateTime due, LocalDateTime now) {
+        Duration overdue = Duration.between(due, now);
+
+        if (overdue.toMinutes() < 1) {
             return "Просрочено меньше минуты";
-        } else if (duration.getSeconds() < 86400) {
-            long hour = duration.getSeconds() / 3600;
-            long minute = duration.getSeconds() % 3600 / 60;
-            return "Просрочено на " + hour + " ч" + (minute == 0 ? "" : " " + minute + " мин");
-        } else {
-            long day = duration.getSeconds() / 86400;
-            return "Просрочено на " + day + " дн.";
         }
+        if (overdue.toDays() < 1) {
+            return "Просрочено на " + hoursAndMinutes(overdue.toHours(), overdue.toMinutesPart());
+        }
+        return "Просрочено на " + overdue.toDays() + " дн.";
+    }
+
+    private static String hoursAndMinutes(long hours, long minutes) {
+        if (hours == 0) {
+            return minutes + " мин";
+        }
+        return hours + " ч" + (minutes == 0 ? "" : " " + minutes + " мин");
     }
 }
