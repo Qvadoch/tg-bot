@@ -14,7 +14,6 @@ import org.telegram.telegrambots.meta.generics.TelegramClient;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,7 +22,6 @@ import java.util.stream.Collectors;
 public class TgBot implements SpringLongPollingBot, LongPollingUpdateConsumer {
 
     private static final Logger log = LoggerFactory.getLogger(TgBot.class);
-    private static final DateTimeFormatter DUE_FORMAT = DateTimeFormatter.ofPattern("dd.MM HH:mm");
 
     private final String botToken;
     private final TelegramClient telegramClient;
@@ -86,11 +84,12 @@ public class TgBot implements SpringLongPollingBot, LongPollingUpdateConsumer {
                 return;
             }
 
+            LocalDateTime now = LocalDateTime.now(ClassroomService.ZONE);
             String text = homework.stream()
                     .limit(10)
                     .map(work -> work.courseName() + "\n"
                             + work.title() + "\n"
-                            + formatDue(work.due()) + "\n"
+                            + DueLabel.format(work.due(), now) + "\n"
                             + work.link())
                     .collect(Collectors.joining("\n\n", "Задания (" + homework.size() + "):\n\n", ""));
             sendText(chatId, text);
@@ -98,13 +97,6 @@ public class TgBot implements SpringLongPollingBot, LongPollingUpdateConsumer {
             log.error("Не удалось получить задания из Classroom", e);
             sendText(chatId, "Не удалось получить задания. Попробуй позже.");
         }
-    }
-
-    private static String formatDue(LocalDateTime due) {
-        if (due == null) {
-            return "Без срока";
-        }
-        return "Срок: " + due.format(DUE_FORMAT);
     }
 
     private void sendText(Long chatId, String text) {

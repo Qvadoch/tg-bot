@@ -32,7 +32,7 @@ import java.util.Set;
 
 @Service
 public class ClassroomService {
-    private static final ZoneId ZONE = ZoneId.of("Europe/Moscow");
+    public static final ZoneId ZONE = ZoneId.of("Europe/Moscow");
 
     private final String googleTokensDir;
     private final String googleClientFile;
