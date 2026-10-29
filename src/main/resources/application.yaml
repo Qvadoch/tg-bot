@@ -4,6 +4,10 @@ spring:
 
 bot:
   token: ${BOT_TOKEN}
+  list:
+    permitted:
+      users-id: ${USERS_ID}
+  timezone: Europe/Moscow
 
 google:
   client-file: ${GOOGLE_CLIENT_FILE}

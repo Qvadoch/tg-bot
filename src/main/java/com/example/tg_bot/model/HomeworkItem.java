@@ -1,4 +1,4 @@
-package com.example.tg_bot;
+package com.example.tg_bot.model;
 
 import java.time.LocalDateTime;
 

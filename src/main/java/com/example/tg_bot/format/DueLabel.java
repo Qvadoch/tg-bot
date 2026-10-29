@@ -1,4 +1,4 @@
-package com.example.tg_bot;
+package com.example.tg_bot.format;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
