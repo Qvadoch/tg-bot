@@ -62,7 +62,7 @@ class TgBotTest {
         verify(messageRouter).route(CHAT_ID, "/help");
     }
 
-    @ParameterizedTest(name = "\"{0}\" -> роутер получает /help")
+    @ParameterizedTest(name = "{0} -> роутер получает /help")
     @ValueSource(strings = {"/help", "/help@mybot", " /help текст "})
     @DisplayName("команда с @ботом или текстом после неё -> роутер получает чистую команду")
     void extractsCommandFromText(String text) {
