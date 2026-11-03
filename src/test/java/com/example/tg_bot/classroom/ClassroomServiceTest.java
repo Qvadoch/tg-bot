@@ -1,6 +1,8 @@
-package com.example.tg_bot.google.classroom;
+package com.example.tg_bot.classroom;
 
-import com.example.tg_bot.model.HomeworkItem;
+import com.example.tg_bot.classroom.service.ClassroomService;
+import com.example.tg_bot.classroom.converter.DueDateConverter;
+import com.example.tg_bot.homework.model.HomeworkItem;
 import com.google.api.client.http.LowLevelHttpRequest;
 import com.google.api.client.http.LowLevelHttpResponse;
 import com.google.api.client.json.gson.GsonFactory;

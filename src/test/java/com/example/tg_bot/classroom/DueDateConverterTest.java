@@ -1,5 +1,6 @@
-package com.example.tg_bot.google.classroom;
+package com.example.tg_bot.classroom;
 
+import com.example.tg_bot.classroom.converter.DueDateConverter;
 import com.google.api.services.classroom.model.Date;
 import com.google.api.services.classroom.model.TimeOfDay;
 import org.junit.jupiter.api.DisplayName;
