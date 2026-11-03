@@ -1,4 +1,4 @@
-package com.example.tg_bot.google.classroom;
+package com.example.tg_bot.classroom.converter;
 
 import com.google.api.services.classroom.model.Date;
 import com.google.api.services.classroom.model.TimeOfDay;
