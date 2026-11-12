@@ -8,6 +8,10 @@ bot:
     permitted:
       users-id: ${USERS_ID}
   timezone: Europe/Moscow
+  homework:
+    sessions:
+      max-size: 1000
+      idle-timeout: PT30M
 
 google:
   client-file: ${GOOGLE_CLIENT_FILE}

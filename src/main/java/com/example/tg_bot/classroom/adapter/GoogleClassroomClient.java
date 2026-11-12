@@ -17,6 +17,14 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Адаптер Google Classroom API для контракта {@link ClassroomClient}.
+ * Загружает все страницы ответов, преобразует модели Google и сохраняет исходную
+ * причину ошибки в {@link ClassroomIntegrationException}.
+ *
+ * <p>Пустая страница с токеном продолжения не завершает загрузку.
+ * Ошибка любой страницы прерывает операцию без возврата частичного результата.
+ */
 @Component
 public class GoogleClassroomClient implements ClassroomClient {
 
@@ -30,89 +38,44 @@ public class GoogleClassroomClient implements ClassroomClient {
 
     @Override
     public List<CourseData> getActiveCourses() {
-        ListCoursesResponse response;
-
+        List<CourseData> courses = new ArrayList<>();
         try {
-            response = classroom.courses().list()
-                    .setCourseStates(List.of("ACTIVE"))
-                    .execute();
-        } catch (IOException e) {
-            throw new ClassroomIntegrationException("Failed to load courses from Google Classroom", e);
-        }
-
-        List<CourseData> allCourses = new ArrayList<>();
-        String pageToken;
-
-        do {
-            List<Course> courses = response.getCourses() != null ? response.getCourses() : List.of();
-            pageToken = response.getNextPageToken();
-
-            for (Course course : courses) {
-                String courseId = course.getId();
-                String courseName = course.getName();
-
-                allCourses.add(new CourseData(courseId, courseName));
-            }
-
-
-            if (pageToken != null) {
-                try {
-                    response = classroom.courses()
-                            .list()
-                            .setCourseStates(List.of("ACTIVE"))
-                            .setPageToken(pageToken)
-                            .execute();
-                } catch (IOException e) {
-                    throw new ClassroomIntegrationException("Failed to load next page of courses", e);
+            Classroom.Courses.List request = classroom.courses().list().setCourseStates(List.of("ACTIVE"));
+            String pageToken = null;
+            do {
+                ListCoursesResponse page = request.setPageToken(pageToken).execute();
+                if (page.getCourses() != null) {
+                    for (Course course : page.getCourses()) {
+                        courses.add(new CourseData(course.getId(), course.getName()));
+                    }
                 }
-            }
-
-        } while (pageToken != null);
-
-        return allCourses;
+                pageToken = page.getNextPageToken();
+            } while (pageToken != null && !pageToken.isEmpty());
+        } catch (IOException exception) {
+            throw new ClassroomIntegrationException("Failed to load active courses from Google Classroom", exception);
+        }
+        return courses;
     }
 
     @Override
     public List<CourseWorkData> getHomework(String courseId) {
-        ListCourseWorkResponse response;
-
+        List<CourseWorkData> homework = new ArrayList<>();
         try {
-            response = classroom.courses().courseWork()
-                    .list(courseId)
-                    .execute();
-        } catch (IOException e) {
-            throw new ClassroomIntegrationException("Failed to load courseWorks from Google Classroom", e);
-        }
-
-        List<CourseWorkData> allCourseWorks = new ArrayList<>();
-        String pageToken;
-
-        do {
-            List<CourseWork> courseWorks = response.getCourseWork() != null ? response.getCourseWork() : List.of();
-            pageToken = response.getNextPageToken();
-
-
-            for (CourseWork courseWork : courseWorks) {
-                String title = courseWork.getTitle();
-                String link = courseWork.getAlternateLink();
-                LocalDateTime due = dueDateConverter.getDue(courseWork.getDueDate(), courseWork.getDueTime());
-
-                allCourseWorks.add(new CourseWorkData(title, link, due));
-            }
-
-            if (pageToken != null) {
-                try {
-                    response = classroom.courses().courseWork()
-                            .list(courseId)
-                            .setPageToken(pageToken)
-                            .execute();
-                } catch (IOException e) {
-                    throw new ClassroomIntegrationException("Failed to load next page of courseWorks", e);
+            Classroom.Courses.CourseWork.List request = classroom.courses().courseWork().list(courseId);
+            String pageToken = null;
+            do {
+                ListCourseWorkResponse page = request.setPageToken(pageToken).execute();
+                if (page.getCourseWork() != null) {
+                    for (CourseWork work : page.getCourseWork()) {
+                        LocalDateTime due = dueDateConverter.getDue(work.getDueDate(), work.getDueTime());
+                        homework.add(new CourseWorkData(work.getTitle(), work.getAlternateLink(), due));
+                    }
                 }
-            }
-
-        } while (pageToken != null);
-
-        return allCourseWorks;
+                pageToken = page.getNextPageToken();
+            } while (pageToken != null && !pageToken.isEmpty());
+        } catch (IOException exception) {
+            throw new ClassroomIntegrationException("Failed to load coursework for Google Classroom course " + courseId, exception);
+        }
+        return homework;
     }
 }
