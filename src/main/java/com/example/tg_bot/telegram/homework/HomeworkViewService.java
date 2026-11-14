@@ -7,7 +7,7 @@ import com.example.tg_bot.telegram.homework.HomeworkSessionStore.Conversation;
 import com.example.tg_bot.telegram.homework.HomeworkSessionStore.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.util.List;
@@ -22,7 +22,7 @@ import java.util.Objects;
  * отличаться от содержимого Telegram. Ошибки основной операции передаются обработчику;
  * ошибки удаления прежних сообщений только записываются в журнал.
  */
-@Component
+@Service
 class HomeworkViewService {
     private static final Logger log = LoggerFactory.getLogger(HomeworkViewService.class);
 
